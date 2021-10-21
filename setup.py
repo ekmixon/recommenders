@@ -62,7 +62,7 @@ extras_require = {
         "nvidia-ml-py3>=7.352.0",
         "tensorflow-gpu>=1.15.0,<2",  # compiled with CUDA 10.0
         "torch==1.2.0",  # last os-common version with CUDA 10.0 support
-        "fastai>=1.0.46,<2",
+        "fastai>=1.0.46,<3",
     ],
     "spark": [
         "databricks_cli>=0.8.6,<1",
