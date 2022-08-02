@@ -141,17 +141,16 @@ def get_train_input(session, train_file_path, npratio=4):
         train_file_path (str): Path to file.
         npration (int): Ratio for negative sampling.
     """
-    fp_train = open(train_file_path, "w", encoding="utf-8")
-    for sess_id in range(len(session)):
-        sess = session[sess_id]
-        userid, _, poss, negs = sess
-        for i in range(len(poss)):
-            pos = poss[i]
-            neg = _newsample(negs, npratio)
-            fp_train.write("1 " + "train_" + userid + " " + pos + "\n")
-            for neg_ins in neg:
-                fp_train.write("0 " + "train_" + userid + " " + neg_ins + "\n")
-    fp_train.close()
+    with open(train_file_path, "w", encoding="utf-8") as fp_train:
+        for sess_id in range(len(session)):
+            sess = session[sess_id]
+            userid, _, poss, negs = sess
+            for i in range(len(poss)):
+                pos = poss[i]
+                neg = _newsample(negs, npratio)
+                fp_train.write("1 " + "train_" + userid + " " + pos + "\n")
+                for neg_ins in neg:
+                    fp_train.write("0 " + "train_" + userid + " " + neg_ins + "\n")
     if os.path.isfile(train_file_path):
         logger.info(f"Train file {train_file_path} successfully generated")
     else:
@@ -165,18 +164,17 @@ def get_valid_input(session, valid_file_path):
         session (list): List of user session with user_id, clicks, positive and negative interactions.
         valid_file_path (str): Path to file.
     """
-    fp_valid = open(valid_file_path, "w", encoding="utf-8")
-    for sess_id in range(len(session)):
-        userid, _, poss, negs = session[sess_id]
-        for i in range(len(poss)):
-            fp_valid.write(
-                "1 " + "valid_" + userid + " " + poss[i] + "%" + str(sess_id) + "\n"
-            )
-        for i in range(len(negs)):
-            fp_valid.write(
-                "0 " + "valid_" + userid + " " + negs[i] + "%" + str(sess_id) + "\n"
-            )
-    fp_valid.close()
+    with open(valid_file_path, "w", encoding="utf-8") as fp_valid:
+        for sess_id in range(len(session)):
+            userid, _, poss, negs = session[sess_id]
+            for i in range(len(poss)):
+                fp_valid.write(
+                    "1 " + "valid_" + userid + " " + poss[i] + "%" + str(sess_id) + "\n"
+                )
+            for i in range(len(negs)):
+                fp_valid.write(
+                    "0 " + "valid_" + userid + " " + negs[i] + "%" + str(sess_id) + "\n"
+                )
     if os.path.isfile(valid_file_path):
         logger.info(f"Validation file {valid_file_path} successfully generated")
     else:
@@ -191,16 +189,17 @@ def get_user_history(train_history, valid_history, user_history_path):
         valid_history (list): Validation history
         user_history_path (str): Path to file.
     """
-    fp_user_history = open(user_history_path, "w", encoding="utf-8")
-    for userid in train_history:
-        fp_user_history.write(
-            "train_" + userid + " " + ",".join(train_history[userid]) + "\n"
-        )
-    for userid in valid_history:
-        fp_user_history.write(
-            "valid_" + userid + " " + ",".join(valid_history[userid]) + "\n"
-        )
-    fp_user_history.close()
+    with open(user_history_path, "w", encoding="utf-8") as fp_user_history:
+        for userid in train_history:
+            fp_user_history.write(
+                f"train_{userid} " + ",".join(train_history[userid]) + "\n"
+            )
+
+        for userid in valid_history:
+            fp_user_history.write(
+                f"valid_{userid} " + ",".join(valid_history[userid]) + "\n"
+            )
+
     if os.path.isfile(user_history_path):
         logger.info(f"User history file {user_history_path} successfully generated")
     else:
@@ -213,11 +212,11 @@ def _read_news(filepath, news_words, news_entities, tokenizer):
     for line in lines:
         splitted = line.strip("\n").split("\t")
         news_words[splitted[0]] = tokenizer.tokenize(splitted[3].lower())
-        news_entities[splitted[0]] = []
-        for entity in json.loads(splitted[6]):
-            news_entities[splitted[0]].append(
-                (entity["SurfaceForms"], entity["WikidataId"])
-            )
+        news_entities[splitted[0]] = [
+            (entity["SurfaceForms"], entity["WikidataId"])
+            for entity in json.loads(splitted[6])
+        ]
+
     return news_words, news_entities
 
 

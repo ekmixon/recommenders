@@ -61,13 +61,12 @@ def sample_cache(spark):
 
 @pytest.fixture(scope="module")
 def header():
-    header = {
+    return {
         "col_user": "UserId",
         "col_item": "MovieId",
         "col_rating": "Rating",
         "col_timestamp": "Timestamp",
     }
-    return header
 
 
 @pytest.fixture(scope="module")
@@ -184,8 +183,7 @@ def pandas_dummy(header):
         header["col_item"]: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         header["col_rating"]: [1, 2, 3, 4, 5, 1, 2, 3, 4, 5],
     }
-    df = pd.DataFrame(ratings_dict)
-    return df
+    return pd.DataFrame(ratings_dict)
 
 
 @pytest.fixture(scope="module")
@@ -231,10 +229,7 @@ def demo_usage_data(header, sar_settings):
 @pytest.fixture(scope="module")
 def demo_usage_data_spark(spark, demo_usage_data, header):
     data_local = demo_usage_data[[x[1] for x in header.items()]]
-    # TODO: install pyArrow in DS VM
-    # spark.conf.set("spark.sql.execution.arrow.enabled", "true")
-    data = spark.createDataFrame(data_local)
-    return data
+    return spark.createDataFrame(data_local)
 
 
 @pytest.fixture(scope="module")
@@ -432,13 +427,15 @@ def test_userpred(
     pred = model.recommend_k_items(
         spark.createDataFrame(
             demo_usage_data[
-                demo_usage_data[header["col_user"]] == sar_settings["TEST_USER_ID"]
+                demo_usage_data[header["col_user"]]
+                == sar_settings["TEST_USER_ID"]
             ]
         ),
-        cache_path="test_userpred-" + test_id,
+        cache_path=f"test_userpred-{test_id}",
         top_k=10,
         n_user_prediction_partitions=1,
     )
+
 
     pred = pred.toPandas().sort_values("score", ascending=False).reset_index(drop=True)
 

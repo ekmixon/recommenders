@@ -104,14 +104,12 @@ class SARPlus:
 
             # replace with timedecayed version
             df = self.spark.sql(query)
-        else:
-            # since SQL is case insensitive, this check needs to be performed similar
-            if self.header["col_timestamp"].lower() in [
+        elif self.header["col_timestamp"].lower() in [
                 s.name.lower() for s in df.schema
             ]:
-                # we need to de-duplicate items by using the latest item
-                query = self.f(
-                    """
+            # we need to de-duplicate items by using the latest item
+            query = self.f(
+                """
                 SELECT {col_user}, {col_item}, {col_rating}
                 FROM
                 (
@@ -122,9 +120,9 @@ class SARPlus:
                 )
                 WHERE latest = 1
                 """
-                )
+            )
 
-                df = self.spark.sql(query)
+            df = self.spark.sql(query)
 
         df.createOrReplaceTempView(self.f("{prefix}df_train"))
 
@@ -148,7 +146,7 @@ class SARPlus:
         )
 
         # compute the diagonal used later for Jaccard and Lift
-        if self.similarity_type == SIM_LIFT or self.similarity_type == SIM_JACCARD:
+        if self.similarity_type in [SIM_LIFT, SIM_JACCARD]:
             item_marginal = self.spark.sql(
                 self.f(
                     "SELECT i1 i, value AS margin FROM {prefix}item_cooccurrence WHERE i1 = i2"
@@ -187,8 +185,9 @@ class SARPlus:
 
         # store upper triangular
         log.info(
-            "sarplus.fit 2/2: compute similiarity metric %s..." % self.similarity_type
+            f"sarplus.fit 2/2: compute similiarity metric {self.similarity_type}..."
         )
+
         self.item_similarity.write.mode("overwrite").saveAsTable(
             self.f("{prefix}item_similarity_upper")
         )

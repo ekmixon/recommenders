@@ -557,10 +557,7 @@ def hit_score(y_true, y_score, k=10):
     """
     ground_truth = np.where(y_true == 1)[0]
     argsort = np.argsort(y_score)[::-1][:k]
-    for idx in argsort:
-        if idx in ground_truth:
-            return 1
-    return 0
+    return next((1 for idx in argsort if idx in ground_truth), 0)
 
 
 def dcg_score(y_true, y_score, k=10):
@@ -682,5 +679,4 @@ def load_dict(filename):
         dict: A saved vocabulary.
     """
     with open(filename, "rb") as f:
-        f_pkl = pkl.load(f)
-        return f_pkl
+        return pkl.load(f)

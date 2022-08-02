@@ -19,7 +19,7 @@ with open(here.joinpath("recommenders", "README.md"), encoding="utf-8") as f:
 
 HASH = environ.get("HASH", None)
 if HASH is not None:
-    version += ".post" + str(int(time.time()))
+    version += f".post{int(time.time())}"
 
 install_requires = [
     "numpy>=1.14",

@@ -39,7 +39,7 @@ class NextItNetIterator(SequentialIterator):
 
         self.max_seq_length = hparams.max_seq_length
         self.batch_size = hparams.batch_size
-        self.iter_data = dict()
+        self.iter_data = {}
 
         self.graph = graph
         with self.graph.as_default():

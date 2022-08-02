@@ -45,7 +45,7 @@ class XDeepFMModel(BaseModel):
 
             if hparams.use_Linear_part:
                 print("Add linear part.")
-                logit = logit + self._build_linear()
+                logit += self._build_linear()
 
             if hparams.use_FM_part:
                 print("Add FM part.")
@@ -143,13 +143,12 @@ class XDeepFMModel(BaseModel):
                 tf.pow(self.iterator.fm_feat_values, 2),
                 self.iterator.fm_feat_shape,
             )
-            fm_output = 0.5 * tf.reduce_sum(
+            return 0.5 * tf.reduce_sum(
                 tf.pow(tf.sparse_tensor_dense_matmul(x, self.embedding), 2)
                 - tf.sparse_tensor_dense_matmul(xx, tf.pow(self.embedding, 2)),
                 1,
                 keep_dims=True,
             )
-            return fm_output
 
     def _build_CIN(
         self, nn_input, res=False, direct=False, bias=False, is_masked=False
@@ -169,13 +168,11 @@ class XDeepFMModel(BaseModel):
             object: Prediction score made by CIN.
         """
         hparams = self.hparams
-        hidden_nn_layers = []
-        field_nums = []
         final_len = 0
         field_num = hparams.FIELD_COUNT
         nn_input = tf.reshape(nn_input, shape=[-1, int(field_num), hparams.dim])
-        field_nums.append(int(field_num))
-        hidden_nn_layers.append(nn_input)
+        field_nums = [int(field_num)]
+        hidden_nn_layers = [nn_input]
         final_result = []
         split_tensor0 = tf.split(hidden_nn_layers[0], hparams.dim * [1], 2)
         with tf.variable_scope("exfm_part", initializer=self.initializer) as scope:
@@ -191,10 +188,11 @@ class XDeepFMModel(BaseModel):
                 dot_result = tf.transpose(dot_result_o, perm=[1, 0, 2])  # (B,D,FH)
 
                 filters = tf.get_variable(
-                    name="f_" + str(idx),
+                    name=f"f_{str(idx)}",
                     shape=[1, field_nums[-1] * field_nums[0], layer_size],
                     dtype=tf.float32,
                 )
+
 
                 if is_masked and idx == 0:
                     ones = tf.ones([field_nums[0], field_nums[0]], dtype=tf.float32)
@@ -214,11 +212,12 @@ class XDeepFMModel(BaseModel):
 
                 if bias:
                     b = tf.get_variable(
-                        name="f_b" + str(idx),
+                        name=f"f_b{str(idx)}",
                         shape=[layer_size],
                         dtype=tf.float32,
                         initializer=tf.zeros_initializer(),
                     )
+
                     curr_out = tf.nn.bias_add(curr_out, b)
                     self.cross_params.append(b)
 
@@ -260,11 +259,7 @@ class XDeepFMModel(BaseModel):
             result = tf.concat(final_result, axis=1)
             result = tf.reduce_sum(result, -1)  # shape : (B,H)
 
-            if res:
-                base_score = tf.reduce_sum(result, 1, keepdims=True)  # (B,1)
-            else:
-                base_score = 0
-
+            base_score = tf.reduce_sum(result, 1, keepdims=True) if res else 0
             w_nn_output = tf.get_variable(
                 name="w_nn_output", shape=[final_len, 1], dtype=tf.float32
             )
@@ -276,8 +271,7 @@ class XDeepFMModel(BaseModel):
             )
             self.layer_params.append(w_nn_output)
             self.layer_params.append(b_nn_output)
-            exFM_out = base_score + tf.nn.xw_plus_b(result, w_nn_output, b_nn_output)
-            return exFM_out
+            return base_score + tf.nn.xw_plus_b(result, w_nn_output, b_nn_output)
 
     def _build_fast_CIN(self, nn_input, res=False, direct=False, bias=False):
         """Construct the compressed interaction network with reduced parameters.

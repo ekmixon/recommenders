@@ -21,7 +21,7 @@ class SARModel:
                     "Directory '%s' must contain exactly 1 file ending in '%s'"
                     % (path, extension)
                 )
-            return path + "/" + files[0]
+            return f"{path}/{files[0]}"
 
         # instantiate C++ backend
         SARModel.__model = self.model = pysarplus_cpp.SARModelCpp(find_or_raise(".sar"))

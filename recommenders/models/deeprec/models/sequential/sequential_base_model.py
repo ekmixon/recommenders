@@ -39,7 +39,7 @@ class SequentialBaseModel(BaseModel):
             hparams.min_seq_length if "min_seq_length" in hparams else 1
         )
         self.hidden_size = hparams.hidden_size if "hidden_size" in hparams else None
-        self.graph = tf.Graph() if not graph else graph
+        self.graph = graph or tf.Graph()
 
         with self.graph.as_default():
             self.sequence_length = tf.placeholder(
@@ -113,7 +113,7 @@ class SequentialBaseModel(BaseModel):
             )
 
         train_sess = self.sess
-        eval_info = list()
+        eval_info = []
 
         best_metric, self.best_epoch = 0, 0
 
@@ -148,12 +148,13 @@ class SequentialBaseModel(BaseModel):
                     epoch,
                     ",".join(
                         [
-                            "" + str(key) + ":" + str(value)
+                            f"{str(key)}:{str(value)}"
                             for key, value in valid_res.items()
                         ]
                     ),
                 )
             )
+
             eval_info.append((epoch, valid_res))
 
             progress = False
@@ -162,10 +163,9 @@ class SequentialBaseModel(BaseModel):
                 best_metric = valid_res[eval_metric]
                 self.best_epoch = epoch
                 progress = True
-            else:
-                if early_stop > 0 and epoch - self.best_epoch >= early_stop:
-                    print("early stop at epoch {0}!".format(epoch))
-                    break
+            elif early_stop > 0 and epoch - self.best_epoch >= early_stop:
+                print("early stop at epoch {0}!".format(epoch))
+                break
 
             if self.hparams.save_model and self.hparams.MODEL_DIR:
                 if not os.path.exists(self.hparams.MODEL_DIR):
@@ -173,8 +173,9 @@ class SequentialBaseModel(BaseModel):
                 if progress:
                     checkpoint_path = self.saver.save(
                         sess=train_sess,
-                        save_path=self.hparams.MODEL_DIR + "epoch_" + str(epoch),
+                        save_path=f"{self.hparams.MODEL_DIR}epoch_{str(epoch)}",
                     )
+
                     checkpoint_path = self.saver.save(
                         sess=train_sess,
                         save_path=os.path.join(self.hparams.MODEL_DIR, "best_model"),
@@ -332,10 +333,13 @@ class SequentialBaseModel(BaseModel):
 
     def _add_norm(self):
         """Regularization for embedding variables and other variables."""
-        all_variables, embed_variables = (
-            tf.trainable_variables(),
-            tf.trainable_variables(self.sequential_scope._name + "/embedding"),
+        (
+            all_variables,
+            embed_variables,
+        ) = tf.trainable_variables(), tf.trainable_variables(
+            f"{self.sequential_scope._name}/embedding"
         )
+
         layer_params = list(set(all_variables) - set(embed_variables))
         layer_params = [a for a in layer_params if "_no_reg" not in a.name]
         self.layer_params.extend(layer_params)
